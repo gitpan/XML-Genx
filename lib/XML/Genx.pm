@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # Use XSLoader first if possible.
 eval {
@@ -109,9 +109,8 @@ compared to one of the values in L<XML::Genx::Constants>.
 
 This will return zero if no error condition is present.
 
-The same value will be returned by the object until the next exception
-is thrown (ie: it does not get cleared by further calls to genx
-methods).
+This value cannot be relied upon to stay the same after further method
+calls to the same object.
 
 =item GetErrorMessage ( CODE )
 
@@ -311,6 +310,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 578 2005-03-01 23:09:21Z dom $
+@(#) $Id: Genx.pm 584 2005-03-02 09:52:34Z dom $
 
 =cut

@@ -1,4 +1,4 @@
-# @(#) $Id: Simple.pm 578 2005-03-01 23:09:21Z dom $
+# @(#) $Id: Simple.pm 581 2005-03-01 23:28:50Z dom $
 
 package XML::Genx::Simple;
 
@@ -7,7 +7,7 @@ use warnings;
 
 use base 'XML::Genx';
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 sub Element {
     my $self = shift;
@@ -185,6 +185,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Simple.pm 578 2005-03-01 23:09:21Z dom $
+@(#) $Id: Simple.pm 581 2005-03-01 23:28:50Z dom $
 
 =cut

@@ -1,10 +1,18 @@
 Revision history for XML::Genx.
 
+0.13  Wed Mar  2 09:52:44 GMT 2005
+	- [INCOMPATIBLE CHANGE] Return genx's status directly instead of
+          storing it after the last error.  Now it can only be relied
+          upon until the next method call.
+	- Ensure that Namespace, Element and Attribute objects report
+          their errors correctly.
+	- Warn about unknown build status under Win32.
+
 0.12  Tue Mar  1 20:53:18 GMT 2005
 	- [INCOMPATIBLE CHANGE] Get rid of the dual valued scalar
 	  exception idea.  The way it was implemented meant that you
 	  didn't get the line number information about where the exception
-	  actually happened.
+	  actually happened.  Instead, add a LastErrorCode() call.
 	- Allude to Win32 compiler problems in README.
 	- Remove some compiler warnings.
 	- Cope with either a glob or a reference to a glob in
