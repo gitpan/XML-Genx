@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 859 2004-11-27 00:11:10Z dom $ */
+/* @(#) $Id: Genx.xs 873 2004-11-30 08:45:26Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
@@ -40,6 +40,92 @@ typedef genxWriter    XML_Genx;
 typedef genxNamespace XML_Genx_Namespace;
 typedef genxElement   XML_Genx_Element;
 typedef genxAttribute XML_Genx_Attribute;
+
+static genxStatus
+sender_write( void *userData, constUtf8 s )
+{
+    dSP;
+    SV *coderef = (SV *)userData;
+    SV *str = newSVpv( (const char *)s, 0 );
+    ENTER;
+    SAVETMPS;
+
+    /* genx guarantees that thus will be UTF-8, so tell Perl that. */
+    SvUTF8_on(str);
+
+    /* Set up the stack. */
+    PUSHMARK(SP);
+    XPUSHs(sv_2mortal(str));
+    XPUSHs(sv_2mortal(newSVpv("write", 5)));
+    PUTBACK;
+
+    /* Do the business. */
+    (void)call_sv( coderef, G_VOID );
+
+    SPAGAIN;                    /* XXX Necessary? */
+
+    FREETMPS;
+    LEAVE;
+    return GENX_SUCCESS;
+}
+
+static genxStatus
+sender_write_bounded( void *userData, constUtf8 start, constUtf8 end )
+{
+    dSP;
+    SV *coderef = (SV *)userData;
+    SV *str = newSVpv((const char *)start, end - start);
+    ENTER;
+    SAVETMPS;
+
+    /* genx guarantees that thus will be UTF-8, so tell Perl that. */
+    SvUTF8_on(str);
+
+    /* Set up the stack. */
+    PUSHMARK(SP);
+    XPUSHs(sv_2mortal(str));
+    XPUSHs(sv_2mortal(newSVpv("write_bounded", 13)));
+    PUTBACK;
+
+    /* Do the business. */
+    (void)call_sv( coderef, G_VOID );
+
+    SPAGAIN;                    /* XXX Necessary? */
+
+    FREETMPS;
+    LEAVE;
+    return GENX_SUCCESS;
+}
+
+static genxStatus
+sender_flush( void *userData )
+{
+    dSP;
+    SV *coderef = (SV *)userData;
+    ENTER;
+    SAVETMPS;
+
+    /* Set up the stack. */
+    PUSHMARK(SP);
+    XPUSHs(sv_2mortal(newSVpv("", 0)));
+    XPUSHs(sv_2mortal(newSVpv("flush", 5)));
+    PUTBACK;
+
+    /* Do the business. */
+    (void)call_sv( coderef, G_VOID );
+
+    SPAGAIN;                    /* XXX Necessary? */
+
+    FREETMPS;
+    LEAVE;
+    return GENX_SUCCESS;
+}
+
+static genxSender sender = {
+    sender_write,
+    sender_write_bounded,
+    sender_flush
+};
 
 MODULE = XML::Genx	PACKAGE = XML::Genx	PREFIX=genx
 
@@ -73,6 +159,29 @@ genxStartDocFile( w, fh )
   INIT:
     if ( fh == NULL )
       croak( "Bad filehandle" );
+
+genxStatus
+genxStartDocSender( w, callback )
+    XML_Genx w
+    SV *callback
+  PREINIT:
+    SV *oldcallback;
+  CODE:
+    /*
+     * Based on Section 6.7.2 of "Extending and Embedding Perl".
+     * First time around, we take a copy of the SV passed in.  Next
+     * time around, we reuse the same SV, but still taking care to
+     * ensure that the ref counts are correct.
+     */
+    oldcallback = (SV *)genxGetUserData( w );
+    if ( oldcallback == NULL ) {
+        genxSetUserData( w, (void *)newSVsv( callback ) );
+    } else {
+        SvSetSV( oldcallback, callback );
+    }
+    RETVAL = genxStartDocSender( w, &sender );
+  OUTPUT:
+    RETVAL
 
 genxStatus
 genxEndDocument( w )

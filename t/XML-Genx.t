@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 857 2004-11-26 23:29:50Z dom $
+# @(#) $Id: XML-Genx.t 873 2004-11-30 08:45:26Z dom $
 
 use strict;
 use warnings;
 
 use File::Temp qw( tempfile );
-use Test::More tests => 49;
+use Test::More tests => 55;
 
 use_ok('XML::Genx');
 
@@ -14,6 +14,7 @@ isa_ok( $w, 'XML::Genx' );
 can_ok( $w, qw(
     GetVersion
     StartDocFile
+    StartDocSender
     LastErrorMessage
     GetErrorMessage
     StartElementLiteral
@@ -65,6 +66,12 @@ is(
     test_declared_no_namespace(),
     '<bar baz="quux"></bar>',
     'test_declared_no_namespace() output',
+);
+
+is(
+    test_sender(),
+    "<foo>\x{0100}dam</foo>",
+    'test_sender() output',
 );
 
 sub test_basics {
@@ -181,6 +188,20 @@ sub test_declared_no_namespace {
     is( $w->EndElement(), 0, 'EndElement()' );
     is( $w->EndDocument(), 0, 'EndDocument()' );
     return fh_contents( $fh );
+}
+
+sub test_sender {
+    my $out = '';
+    my $w   = XML::Genx->new;
+    is( $w->StartDocSender( sub { $out .= $_[0] } ), 0, 'StartDocSender()' );
+    is(
+        $w->StartElementLiteral( undef, 'foo' ), 0,
+        'StartElementLiteral(undef,foo)'
+    );
+    is( $w->AddText( "\x{0100}dam" ), 0, 'AddText(*utf8*)' );
+    is( $w->EndElement,  0, 'EndElement()' );
+    is( $w->EndDocument, 0, 'EndDocument()' );
+    return $out;
 }
 
 sub fh_contents {

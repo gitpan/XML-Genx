@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # Use XSLoader first if possible.
 eval {
@@ -27,11 +27,16 @@ XML::Genx - Simple, correct XML writer
 
   use XML::Genx;
   my $w = XML::Genx->new;
-  $w->StartDocFile( *STDOUT );
-  $w->StartElementLiteral( 'urn:foo', 'foo' ):
-  $w->AddText( 'bar' );
-  $w->EndElement;
-  $w->EndDocument;
+  $w->StartDocFile( *STDOUT )
+    or die $w->LastErrorMessage;
+  $w->StartElementLiteral( 'urn:foo', 'foo' )
+    or die $w->LastErrorMessage;
+  $w->AddText( 'bar' )
+    or die $w->LastErrorMessage;
+  $w->EndElement
+    or die $w->LastErrorMessage;
+  $w->EndDocument
+    or die $w->LastErrorMessage;
 
 =head1 DESCRIPTION
 
@@ -56,9 +61,24 @@ of the error can be extracted.
 
 Constructor.  Returns a new L<XML::Genx> object.
 
-=item startDocFile ( FILEHANDLE )
+=item StartDocFile ( FILEHANDLE )
 
 Starts writing output to FILEHANDLE.
+
+=item StartDocSender ( CALLBACK )
+
+Takes a coderef (C< sub {} >), which gets called each time that genx
+needs to output something.  CALLBACK will be called with two
+arguments: the text to output and the name of the function that called
+it (one of I<write>, I<write_bounded>, or I<flush>).
+
+  my $coderef = sub { print $_[0] if $_[1] =~ /write/ };
+  $w->StartDocSender( $coderef );
+
+In the case of I<flush>, the first argument will always be an empty
+string.
+
+The string passed to CALLBACK will always be UTF-8.
 
 =item EndDocument ( )
 
@@ -164,27 +184,17 @@ sits on top of Genx.
 
 =item *
 
-Provide an ability to use genxStartDocSender() so that you can pass in
-code refs that get given strings.  This should be the underpinnings of a
-slightly easier interface than filehandles.
-
-=item *
-
-Clean up warnings from the C compiler under FreeBSD.  They appear to
-be related to 64 bit integers, but I need to investigate further.
-
-  lib/XML/Genx.c: In function `XS_XML__Genx_DESTROY':
-  lib/XML/Genx.c:98: warning: cast to pointer from integer of different size
-
-=item *
-
-Make the constants available in Perl.
+Make the constants available in Perl.  I don't think this is needed
+yet.
 
 =item *
 
 Make the interface more Perlish where possible.  I really like the way
 that the Ruby interface uses blocks, but I don't think it'd be as
-practical in Perl...
+practical in Perl.
+
+One thing which would be good would be throwing errors instead of
+returning status codes.
 
 =item *
 
@@ -244,6 +254,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 860 2004-11-27 00:18:08Z dom $
+@(#) $Id: Genx.pm 874 2004-11-30 08:50:03Z dom $
 
 =cut

@@ -1,4 +1,10 @@
 Revision history for XML::Genx.
 
+0.02  Tue Nov 30 08:49:13 GMT 2004
+	- Added StartDocSender(), so you don't always have to output
+	  to a filehandle.
+	- Fixed compilation warnings about "cast to pointer from
+	  integer of different size".
+
 0.01  Sat Nov 27 09:03:47 GMT 2004
 	- Original version.
