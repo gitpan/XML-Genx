@@ -23,12 +23,31 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 479 2005-02-18 10:14:47Z dom $ */
+/* @(#) $Id: Genx.xs 488 2005-02-19 19:15:05Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 #include "genx.h"
+
+/*
+ * Initialize the hash inside the writer, reusing the existing one if
+ * possible.  This should be called by each StartDocFoo().
+ */
+
+HV *
+initSelfUserData( genxWriter w )
+{
+    HV *self;
+    self = (HV *)genxGetUserData( w );
+    if ( self != NULL ) {
+        hv_clear( self );
+    } else {
+        self = newHV();
+        genxSetUserData( w, self );
+    }
+    return self;
+}
 
 /* 
  * We use a typemap to change the underscore into a double colon.
@@ -44,7 +63,8 @@ static genxStatus
 sender_write( void *userData, constUtf8 s )
 {
     dSP;
-    SV *coderef = (SV *)userData;
+    HV *self = (HV *)userData;
+    SV **svp;
     SV *str = newSVpv( (const char *)s, 0 );
     ENTER;
     SAVETMPS;
@@ -59,7 +79,8 @@ sender_write( void *userData, constUtf8 s )
     PUTBACK;
 
     /* Do the business. */
-    (void)call_sv( coderef, G_VOID );
+    if ((svp = hv_fetch( self, "callback", 8, 0 )))
+        (void)call_sv( *svp, G_VOID );
 
     SPAGAIN;                    /* XXX Necessary? */
 
@@ -72,7 +93,8 @@ static genxStatus
 sender_write_bounded( void *userData, constUtf8 start, constUtf8 end )
 {
     dSP;
-    SV *coderef = (SV *)userData;
+    HV *self = (HV *)userData;
+    SV **svp;
     SV *str = newSVpv((const char *)start, end - start);
     ENTER;
     SAVETMPS;
@@ -87,7 +109,8 @@ sender_write_bounded( void *userData, constUtf8 start, constUtf8 end )
     PUTBACK;
 
     /* Do the business. */
-    (void)call_sv( coderef, G_VOID );
+    if ((svp = hv_fetch( self, "callback", 8, 0 )))
+        (void)call_sv( *svp, G_VOID );
 
     SPAGAIN;                    /* XXX Necessary? */
 
@@ -100,7 +123,8 @@ static genxStatus
 sender_flush( void *userData )
 {
     dSP;
-    SV *coderef = (SV *)userData;
+    HV *self = (HV *)userData;
+    SV **svp;
     ENTER;
     SAVETMPS;
 
@@ -111,7 +135,8 @@ sender_flush( void *userData )
     PUTBACK;
 
     /* Do the business. */
-    (void)call_sv( coderef, G_VOID );
+    if ((svp = hv_fetch( self, "callback", 8, 0 )))
+        (void)call_sv( *svp, G_VOID );
 
     SPAGAIN;                    /* XXX Necessary? */
 
@@ -128,17 +153,19 @@ static genxSender sender = {
 
 /*
  * Some helper functions for automatically appending genx output into a
- * string.  Thanks to shiny genx neatness, we can store the SV that
- * we're outputting to in the userdata field.
+ * string.  The string is stored inside a hash, which genx's userData
+ * field holds for us.
  */
 
 static genxStatus
 string_sender_write( void *userData, constUtf8 s )
 {
-    SV *str = (SV *)userData;
+    HV *self = (HV *)userData;
+    SV **svp;
     ENTER;
     SAVETMPS;
-    sv_catpv( str, s );
+    if ((svp = hv_fetch( self, "string", 6, 0 )))
+        sv_catpv( *svp, s );
     FREETMPS;
     LEAVE;
     return GENX_SUCCESS;
@@ -147,10 +174,12 @@ string_sender_write( void *userData, constUtf8 s )
 static genxStatus
 string_sender_write_bounded( void *userData, constUtf8 start, constUtf8 end )
 {
-    SV *str = (SV *)userData;
+    HV *self = (HV *)userData;
+    SV **svp;
     ENTER;
     SAVETMPS;
-    sv_catpvn( str, start, end - start );
+    if ((svp = hv_fetch( self, "string", 6, 0 )))
+        sv_catpvn( *svp, start, end - start );
     FREETMPS;
     LEAVE;
     return GENX_SUCCESS;
@@ -167,6 +196,9 @@ static genxSender string_sender = {
     string_sender_flush
 };
 
+/*
+ * Small utility function to throw the correct exception.
+ */
 static void
 croak_on_genx_error( genxWriter w, genxStatus st )
 {
@@ -198,53 +230,6 @@ croak_on_genx_error( genxWriter w, genxStatus st )
     return;
 }
 
-/*
- * When we get given a filehandle, we need to increment the refcount
- * so that Perl doesn't close it for us.  But then we also need to
- * decrement the refcount when we are done with it.
- *
- * Because we don't have anywhere inside $self to store the
- * filehandle, we put them in a hash indexed by $self here.
- */
-
-static HV *filehandle_suitcase;
-
-static void
-begin_using_filehandle( SV *self, SV *in_fh )
-{
-  SV *glob;
-
-  if ( !filehandle_suitcase )
-    filehandle_suitcase = newHV();
-
-  /* Get the contents if it's a reference. */
-  if ( SvROK( in_fh ) )
-    glob = SvRV( in_fh );
-  else
-    glob = in_fh;
-
-  (void)hv_store_ent( filehandle_suitcase, self, newRV_inc( glob ), 0 );
-}
-
-static void
-end_using_filehandle( SV *self )
-{
-  SV *glob;
-  SV *val;
-
-  if ( !filehandle_suitcase )
-    return;
-
-  /*
-   * If we've got a filehandle in the hash, remove it and decrement
-   * the reference count.  It appears that calling delete() is enough
-   * to do this and you don't have to call SvREFCND_dec() yourself...
-   */
-  if ( hv_exists_ent( filehandle_suitcase, self, 0 ) ) {
-    val = hv_delete_ent( filehandle_suitcase, self, 0, 0 );
-  }
-}
-
 MODULE = XML::Genx	PACKAGE = XML::Genx	PREFIX=genx
 
 PROTOTYPES: DISABLE
@@ -267,7 +252,16 @@ new( klass )
 void
 DESTROY( w )
     XML_Genx w
+  PREINIT:
+    HV *self;
   CODE:
+    self = (HV *)genxGetUserData( w );
+    /* 
+     * Ensure that Perl can clean up this hash now that nothing's
+     * referencing it.
+     */
+    if ( self != NULL )
+        SvREFCNT_dec( self );
     genxDispose( w );
 
 genxStatus
@@ -276,7 +270,9 @@ genxStartDocFile( w, fh )
     FILE *fh
   PREINIT:
     struct stat st;
+    HV *self;
   INIT:
+    self = initSelfUserData( w );
     /* 
      * Sometimes we get back a filehandle with an invalid file
      * descriptor instead of NULL.  So use fstat() to check that it's
@@ -289,7 +285,8 @@ genxStartDocFile( w, fh )
     if ( fh == NULL || fstat(fileno(fh), &st) == -1 )
       croak( "Bad filehandle" );
     /* Store a reference to the filehandle. */
-    begin_using_filehandle( ST(0), ST(1) );
+    if (!hv_store( self, "fh", 2, SvREFCNT_inc(ST(1)), 0))
+        SvREFCNT_dec( ST(1) );
   POSTCALL:
     croak_on_genx_error( w, RETVAL );
 
@@ -298,20 +295,11 @@ genxStartDocSender( w, callback )
     XML_Genx w
     SV *callback
   PREINIT:
-    SV *oldcallback;
+    HV *self;
   CODE:
-    /*
-     * Based on Section 6.7.2 of "Extending and Embedding Perl".
-     * First time around, we take a copy of the SV passed in.  Next
-     * time around, we reuse the same SV, but still taking care to
-     * ensure that the ref counts are correct.
-     */
-    oldcallback = (SV *)genxGetUserData( w );
-    if ( oldcallback == NULL ) {
-        genxSetUserData( w, (void *)newSVsv( callback ) );
-    } else {
-        SvSetSV( oldcallback, callback );
-    }
+    self = initSelfUserData( w );
+    if (!hv_store( self, "callback", 8, SvREFCNT_inc(callback), 0 ))
+        SvREFCNT_dec( callback );
     RETVAL = genxStartDocSender( w, &sender );
   POSTCALL:
     croak_on_genx_error( w, RETVAL );
@@ -321,10 +309,14 @@ genxStartDocSender( w, callback )
 genxStatus
 genxEndDocument( w )
     XML_Genx w
+  PREINIT:
+    HV *self;
+    SV **svp;
   POSTCALL:
-    croak_on_genx_error( w, RETVAL );
+    self = (HV *)genxGetUserData( w );;
     /* Decrement the reference count on the filehandle. */
-    end_using_filehandle( ST(0) );
+    hv_delete( self, "fh", 2, G_DISCARD );
+    croak_on_genx_error( w, RETVAL );
 
 # Take a variable length list so that we can make the namespace
 # parameter optional.  Even when present, it will only be used if it's
@@ -531,6 +523,18 @@ genxDeclareAttribute( w, ... )
         XSRETURN_UNDEF;
     }
 
+SV *
+genxScrubText( w, in )
+    XML_Genx w
+    SV *in
+  CODE:
+    RETVAL = newSVsv( in );
+    (void)genxScrubText( w, SvPV_nolen( in ), SvPV_nolen( RETVAL ) );
+    /* Fix up the new length. */
+    SvCUR_set( RETVAL, strlen( SvPV_nolen( RETVAL ) ) );
+  OUTPUT:
+    RETVAL
+
 MODULE = XML::Genx	PACKAGE = XML::Genx::Namespace	PREFIX=genx
 
 utf8
@@ -736,21 +740,33 @@ genxStatus
 genxStartDocString( w )
     XML_Genx w
   PREINIT:
-    SV *str = newSVpv("", 0);
+    HV *self;
   CODE:
-    /* genx guarantees that this will be so */
-    SvUTF8_on( str );
-    genxSetUserData( w, (void *)str );
+    self = initSelfUserData( w );
+    /* No need to inc ref count as we're creating the SV here. */
+    (void)hv_store( self, "string", 6, newSVpv("", 0), 0 );
     RETVAL = genxStartDocSender( w, &string_sender );
   OUTPUT:
     RETVAL
 
-# XXX There is no way to guarantee that this will be a valid SV.  It's
-# only going to be valid if you called StartDocString first.
 SV *
 genxGetDocString( w )
     XML_Genx w
+  PREINIT:
+    HV *self;
+    SV **svp;
   CODE:
-    RETVAL = (SV *)genxGetUserData( w );
+    self = (HV *)genxGetUserData( w );
+    /* 
+     * Fetch the string out of ourselves.  Ensure that it gets sent back
+     * as UTF-8, which genx guarantees for us.
+     */
+    if ((svp = hv_fetch(self, "string", 6, 0))) {
+        SvUTF8_on( *svp );
+        SvREFCNT_inc( *svp );
+        RETVAL = *svp;
+    } else {
+        RETVAL = &PL_sv_undef;
+    }
   OUTPUT:
     RETVAL

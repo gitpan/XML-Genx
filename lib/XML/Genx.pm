@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 # Use XSLoader first if possible.
 eval {
@@ -102,6 +102,12 @@ Returns the string value of the last error.
 =item GetErrorMessage ( CODE )
 
 Given a genxStatus code, return the equivalent string.
+
+=item ScrubText ( STRING )
+
+Returns a new version of STRING with prohibited characters removed.
+Prohibited characters includes non UTF-8 byte sequences and characters
+which are not allowed in XML 1.0.
 
 =item AddText ( STRING )
 
@@ -235,10 +241,6 @@ sits on top of Genx.
 
 Write a SAX output filter using XML::Genx.
 
-=item *
-
-Clean up the XS a little; there's a lot of cut'n'paste in there.
-
 =back
 
 =head1 SEE ALSO
@@ -293,6 +295,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 469 2004-12-15 12:43:32Z dom $
+@(#) $Id: Genx.pm 490 2005-02-19 19:17:39Z dom $
 
 =cut
