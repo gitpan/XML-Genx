@@ -7,7 +7,7 @@ use XML::Genx;
 
 use base 'Exporter';
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 our @EXPORT_OK = qw(
   GENX_SUCCESS
   GENX_BAD_UTF8
@@ -156,6 +156,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Constants.pm 917 2004-12-05 17:41:17Z dom $
+@(#) $Id: Constants.pm 923 2004-12-07 12:15:27Z dom $
 
 =cut

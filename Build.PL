@@ -1,13 +1,13 @@
 #!/usr/bin/perl -w
-# @(#) $Id: Build.PL 900 2004-12-03 14:12:51Z dom $
+# @(#) $Id: Build.PL 924 2004-12-08 13:46:58Z dom $
 
 use strict;
 use Module::Build;
 
-# The next release of Module::Build contains a fix that we need.
+# This release of Module::Build contains a fix that we need.
 # http://sourceforge.net/mailarchive/forum.php?thread_id=6080058&forum_id=10905
 my %build_requires;
-$build_requires{ 'Module::Build' } = 0.27
+$build_requires{ 'Module::Build' } = 0.2606
     if $^O eq 'MSWin32';
 
 Module::Build->new(
