@@ -1,4 +1,4 @@
-# @(#) $Id$
+# @(#) $Id: Simple.pm 915 2004-12-05 17:38:38Z dom $
 
 package XML::Genx::Simple;
 
@@ -7,7 +7,7 @@ use warnings;
 
 use base 'XML::Genx';
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 sub Element {
     my $self = shift;
@@ -31,6 +31,7 @@ sub DESTROY {
     my $self = shift;
     # Clean up any loose pointers we have...
     $self->_UndeclareElements;
+    $self->_UndeclareAttributes;
 
     # And pass control back to our parents.
     $self->SUPER::DESTROY;
@@ -167,6 +168,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id$
+@(#) $Id: Simple.pm 915 2004-12-05 17:38:38Z dom $
 
 =cut

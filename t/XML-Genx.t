@@ -1,13 +1,16 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 903 2004-12-04 19:22:09Z dom $
+# @(#) $Id: XML-Genx.t 916 2004-12-05 17:39:39Z dom $
 
 use strict;
 use warnings;
 
 use File::Temp qw( tempfile );
-use Test::More tests => 80;
+use Test::More tests => 84;
 
-use_ok('XML::Genx');
+BEGIN {
+    use_ok( 'XML::Genx' );
+    use_ok( 'XML::Genx::Constants', qw( GENX_SUCCESS GENX_SEQUENCE_ERROR ) );
+}
 
 my $w = XML::Genx->new();
 isa_ok( $w, 'XML::Genx' );
@@ -87,6 +90,7 @@ is(
 );
 
 test_die_on_error();
+test_constants();
 
 sub test_basics {
     my $w = XML::Genx->new();
@@ -277,7 +281,14 @@ sub test_sender {
 sub test_die_on_error {
     my $w = XML::Genx->new;
     eval { $w->EndDocument };
-    like( $@, qr/^Call out of sequence/, 'EndDocument() sequence error' );
+    # The exception object should be a dualvar scalar: both number and
+    # string at the same time.  The only guarantee about the number we
+    # have is that success is zero, so we test for greater than
+    # that. The reason for doing this is that it'll make testing
+    # against constants easier later on.
+    ok( $@ > 0, 'EndDocument() sequence error is a dualvar.' );
+    like( $@, qr/^Call out of sequence/, 'EndDocument() sequence error' )
+      or diag $@;
 
     # The objects that we create are special cases that need testing
     # for die() too...
@@ -303,6 +314,13 @@ sub test_die_on_error {
     };
     like( $@, qr/^Call out of sequence/, 'at->AddAttribute() sequence error' );
 
+}
+
+sub test_constants {
+    my $w = XML::Genx->new;
+    is( GENX_SUCCESS, 0, 'GENX_SUCCESS' );
+    eval { $w->EndDocument };
+    ok( $@ == GENX_SEQUENCE_ERROR, 'GENX_SEQUENCE_ERROR' );
 }
 
 sub fh_contents {

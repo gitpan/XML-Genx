@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 # Use XSLoader first if possible.
 eval {
@@ -105,20 +105,23 @@ Given a genxStatus code, return the equivalent string.
 
 =item AddText ( STRING )
 
-Output STRING.
+Output STRING.  STRING must be valid UTF-8.
 
 =item AddCharacter ( C )
 
-Output the Unicode character with codepoint C (an integer).
+Output the Unicode character with codepoint C (an integer).  This is
+normally obtained by ord().
 
 =item Comment ( STRING )
 
-Output STRING as an XML comment.
+Output STRING as an XML comment.  Genx will complain if STRING
+contains "--".
 
 =item PI ( TARGET, STRING )
 
 Output a processing instruction, with target TARGET and STRING as the
-body.
+body.  Genx will complain if STRING contains "?>" or if TARGET is the
+string "xml" (in any case).
 
 =item UnsetDefaultNamespace ( )
 
@@ -230,8 +233,7 @@ sits on top of Genx.
 
 =item *
 
-Make the constants available in Perl.  I don't think this is needed
-yet.
+Write a SAX output filter using XML::Genx.
 
 =item *
 
@@ -291,6 +293,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 905 2004-12-04 20:06:25Z dom $
+@(#) $Id: Genx.pm 921 2004-12-05 17:45:11Z dom $
 
 =cut
