@@ -23,31 +23,12 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 488 2005-02-19 19:15:05Z dom $ */
+/* @(#) $Id: Genx.xs 576 2005-03-01 23:06:56Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
 #include "genx.h"
-
-/*
- * Initialize the hash inside the writer, reusing the existing one if
- * possible.  This should be called by each StartDocFoo().
- */
-
-HV *
-initSelfUserData( genxWriter w )
-{
-    HV *self;
-    self = (HV *)genxGetUserData( w );
-    if ( self != NULL ) {
-        hv_clear( self );
-    } else {
-        self = newHV();
-        genxSetUserData( w, self );
-    }
-    return self;
-}
 
 /* 
  * We use a typemap to change the underscore into a double colon.
@@ -58,6 +39,66 @@ typedef genxWriter    XML_Genx;
 typedef genxNamespace XML_Genx_Namespace;
 typedef genxElement   XML_Genx_Element;
 typedef genxAttribute XML_Genx_Attribute;
+
+/*
+ * Initialize the hash inside the writer, reusing the existing one if
+ * possible.  This should be called by each StartDocFoo().
+ */
+
+HV *
+initSelfUserData( genxWriter w )
+{
+    HV *self = (HV *)genxGetUserData( w );
+    if ( self != NULL ) {
+        hv_clear( self );
+    } else {
+        self = newHV();
+        genxSetUserData( w, self );
+    }
+    return self;
+}
+
+/*
+ * DEBUG -- uncomment to use.  This is just a convenience function for
+ * seeing what's inside an object.
+ */
+
+#ifdef notdef
+static void
+dump_self( genxWriter w, const char *msg )
+{
+    dSP;
+    HV *self = (HV *)genxGetUserData( w );
+    CV *dump;
+    ENTER;
+    SAVETMPS;
+
+    /* Set up the stack. */
+    PUSHMARK(SP);
+    /* Don't bother creating a reference here. */
+    XPUSHs((SV *)self);
+    PUTBACK;
+
+    SPAGAIN;                    /* XXX Necessary? */
+
+    if ( msg )
+        warn( msg );
+
+    if ( self != NULL ) {
+        (void)eval_pv("use Devel::Peek;", TRUE);
+        if ((dump = get_cv("Devel::Peek::Dump", FALSE)) != NULL ) {
+            call_sv( (SV *)dump, G_VOID );
+        } else {
+            warn("Devel::Peek not loaded!");
+        }
+    } else {
+        warn("No hash in self to dump!");
+    }
+
+    FREETMPS;
+    LEAVE;
+}
+#endif
 
 static genxStatus
 sender_write( void *userData, constUtf8 s )
@@ -203,31 +244,37 @@ static void
 croak_on_genx_error( genxWriter w, genxStatus st )
 {
     char *msg;
+    HV *self;
+
     if ( st == GENX_SUCCESS ) {
         msg = NULL;
     } else if ( w ) {
         msg = genxLastErrorMessage( w );
     } else {
-        /* If we don't have a writer object handy, make one for this
-         * purpose.  This is slow, but unavoidable. */
+        /* 
+         * If we don't have a writer object handy, make one for this
+         * purpose.  This is slow, but unavoidable.
+         *
+         * Also, this means that we don't have anywhere to store the
+         * status code.  Annoying, but hopefully this will be a rare
+         * occurrence.
+         */
         w = genxNew( NULL, NULL, NULL );
         msg = genxGetErrorMessage( w, st );
         genxDispose( w );
+        w = NULL;
     }
+
     if ( msg ) {
         /*
-         * Make the exception be a dual scalar, with genxStatus as the
-         * integer part.  Idea taken from Scalar::Util::dualvar.
+         * Store the status for later retrieval as well, if possible.
          */
-        SV *errsv     = get_sv( "@", TRUE );
-        SV *exception = sv_2mortal( newSVpv( msg, 0 ) );
-        (void)SvUPGRADE( exception, SVt_PVIV );
-        SvIVX( exception ) = st;
-        SvIOK_on( exception );
-        sv_setsv( errsv, exception );
-        croak( Nullch );
+        if ( w ) {
+            self = (HV *)genxGetUserData( w );
+            hv_store( self, "status", 6, newSViv( st ), 0 );
+        }
+        croak( msg );
     }
-    return;
 }
 
 MODULE = XML::Genx	PACKAGE = XML::Genx	PREFIX=genx
@@ -244,6 +291,8 @@ new( klass )
     XML_Genx w;
   PPCODE:
     w = genxNew( NULL, NULL, NULL );
+    /* We need this set up early in case we croak. */
+    (void)initSelfUserData( w );
     ST( 0 ) = sv_newmortal();
     sv_setref_pv( ST(0), klass, (void*)w );
     SvREADONLY_on(SvRV(ST(0)));
@@ -271,6 +320,7 @@ genxStartDocFile( w, fh )
   PREINIT:
     struct stat st;
     HV *self;
+    SV *fhsv;
   INIT:
     self = initSelfUserData( w );
     /* 
@@ -284,9 +334,10 @@ genxStartDocFile( w, fh )
      */
     if ( fh == NULL || fstat(fileno(fh), &st) == -1 )
       croak( "Bad filehandle" );
-    /* Store a reference to the filehandle. */
-    if (!hv_store( self, "fh", 2, SvREFCNT_inc(ST(1)), 0))
-        SvREFCNT_dec( ST(1) );
+    /* Store a the filehandle in ourselves. */
+    fhsv = SvROK( ST(1) ) ? SvRV( ST(1) ) : ST(1);
+    if (!hv_store( self, "fh", 2, SvREFCNT_inc(fhsv), 0))
+        SvREFCNT_dec( fhsv );
   POSTCALL:
     croak_on_genx_error( w, RETVAL );
 
@@ -311,9 +362,8 @@ genxEndDocument( w )
     XML_Genx w
   PREINIT:
     HV *self;
-    SV **svp;
   POSTCALL:
-    self = (HV *)genxGetUserData( w );;
+    self = (HV *)genxGetUserData( w );
     /* Decrement the reference count on the filehandle. */
     hv_delete( self, "fh", 2, G_DISCARD );
     croak_on_genx_error( w, RETVAL );
@@ -381,6 +431,20 @@ char *
 genxLastErrorMessage( w )
     XML_Genx w
 
+# This is an extension of the genx API.
+int
+genxLastErrorCode( w )
+    XML_Genx w
+  PREINIT:
+    HV *self;
+    SV **svp;
+  CODE:
+    self = (HV *)genxGetUserData( w );
+    svp = hv_fetch( self, "status", 6, 0 );
+    RETVAL = svp != NULL ? SvIV(*svp) : 0;
+  OUTPUT:
+    RETVAL
+
 char *
 genxGetErrorMessage( w, st )
     XML_Genx w
@@ -425,6 +489,8 @@ char *
 genxGetVersion( class )
     char * class
   CODE:
+    /* avoid unused variable warning. */
+    (void)class;
     RETVAL = genxGetVersion();
   OUTPUT:
     RETVAL
@@ -468,14 +534,14 @@ genxDeclareElement( w, ... )
         type = (constUtf8)SvPV_nolen(ST(1));
     } else if ( items == 3 ) {
         /*  Bleargh, would be nice to be able to reuse typemap here */
-	if (ST(1) == &PL_sv_undef) {
-	    ns = (XML_Genx_Namespace) NULL;
-	} else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
-	    IV tmp = SvIV((SV*)SvRV(ST(1)));
-	    ns = INT2PTR(XML_Genx_Namespace, tmp);
-	} else {
-	    croak("ns is not undef or of type XML::Genx::Namespace");
-	}
+        if (ST(1) == &PL_sv_undef) {
+            ns = (XML_Genx_Namespace) NULL;
+        } else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
+            IV tmp = SvIV((SV*)SvRV(ST(1)));
+            ns = INT2PTR(XML_Genx_Namespace, tmp);
+        } else {
+            croak("ns is not undef or of type XML::Genx::Namespace");
+        }
         type = (constUtf8)SvPV_nolen(ST(2));
     } else {
         croak( "Usage: w->DeclareElement([ns],type)" );
@@ -501,14 +567,14 @@ genxDeclareAttribute( w, ... )
         name = (constUtf8)SvPV_nolen(ST(1));
     } else if ( items == 3 ) {
         /*  Bleargh, would be nice to be able to reuse typemap here */
-	if (ST(1) == &PL_sv_undef) {
-	    ns = (XML_Genx_Namespace) NULL;
-	} else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
-	    IV tmp = SvIV((SV*)SvRV(ST(1)));
-	    ns = INT2PTR(XML_Genx_Namespace, tmp);
-	} else {
-	    croak("ns is not undef or of type XML::Genx::Namespace");
-	}
+        if (ST(1) == &PL_sv_undef) {
+            ns = (XML_Genx_Namespace) NULL;
+        } else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
+            IV tmp = SvIV((SV*)SvRV(ST(1)));
+            ns = INT2PTR(XML_Genx_Namespace, tmp);
+        } else {
+            croak("ns is not undef or of type XML::Genx::Namespace");
+        }
         name = (constUtf8)SvPV_nolen(ST(2));
     } else {
         croak( "Usage: w->DeclareAttribute([ns],name)" );

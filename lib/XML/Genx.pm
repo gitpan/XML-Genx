@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 # Use XSLoader first if possible.
 eval {
@@ -77,6 +77,9 @@ string.
 
 The string passed to CALLBACK will always be UTF-8.
 
+B<NB>: If you just want to append to a string, have a look at
+L<XML::Genx::Simple/StartDocString>.
+
 =item EndDocument ( )
 
 Finishes writing to the output stream.
@@ -98,6 +101,17 @@ Output a closing tag for the currently open element.
 =item LastErrorMessage ( )
 
 Returns the string value of the last error.
+
+=item LastErrorCode ( )
+
+Returns the integer status code of the last error.  This can be
+compared to one of the values in L<XML::Genx::Constants>.
+
+This will return zero if no error condition is present.
+
+The same value will be returned by the object until the next exception
+is thrown (ie: it does not get cleared by further calls to genx
+methods).
 
 =item GetErrorMessage ( CODE )
 
@@ -245,6 +259,8 @@ Write a SAX output filter using XML::Genx.
 
 =head1 SEE ALSO
 
+L<XML::Genx::Constants>, L<XML::Genx::Simple>.
+
 L<http://www.tbray.org/ongoing/When/200x/2004/02/20/GenxStatus>
 
 =head1 AUTHOR
@@ -295,6 +311,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 490 2005-02-19 19:17:39Z dom $
+@(#) $Id: Genx.pm 578 2005-03-01 23:09:21Z dom $
 
 =cut
