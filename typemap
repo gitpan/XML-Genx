@@ -1,4 +1,4 @@
-# @(#) $Id: typemap 410 2004-11-27 21:04:47Z dom $
+# @(#) $Id: typemap 612 2005-03-16 22:11:04Z dom $
 
 # T_PTROBJ_SPECIAL definition derived from the example in perlxs(1).
 
@@ -12,7 +12,7 @@ constUtf8		T_PV
 
 INPUT
 T_PTROBJ_SPECIAL
-	if ($arg == &PL_sv_undef) {
+	if (!SvOK($arg)) {
 	    $var = ($type) NULL;
 	} else if (sv_derived_from($arg, \"${(my $ntt=$ntype)=~s/_/::/g;\$ntt}\")) {
 	    IV tmp = SvIV((SV*)SvRV($arg));

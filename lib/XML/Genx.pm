@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 # Use XSLoader first if possible.
 eval {
@@ -246,16 +246,6 @@ sits on top of Genx.
 
 =back
 
-=head1 TODO
-
-=over 4
-
-=item *
-
-Write a SAX output filter using XML::Genx.
-
-=back
-
 =head1 SEE ALSO
 
 L<XML::Genx::Constants>, L<XML::Genx::Simple>.
@@ -310,6 +300,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 584 2005-03-02 09:52:34Z dom $
+@(#) $Id: Genx.pm 612 2005-03-16 22:11:04Z dom $
 
 =cut
