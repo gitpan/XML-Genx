@@ -4,7 +4,7 @@
 # RSS file linking to files in that directory (which are presumed
 # served via the URL).
 #
-# @(#) $Id$
+# @(#) $Id: rssdir.pl 889 2004-12-01 10:25:42Z dom $
 #
 
 use strict;

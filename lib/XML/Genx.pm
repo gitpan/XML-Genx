@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # Use XSLoader first if possible.
 eval {
@@ -242,7 +242,7 @@ L<http://www.tbray.org/ongoing/When/200x/2004/02/20/GenxStatus>
 
 =head1 AUTHOR
 
-Dominic Mitchell, E<lt>dom@happygiraffe.netE<gt>
+Dominic Mitchell, E<lt>cpan@happygiraffe.netE<gt>
 
 The genx library was created by Tim Bray L<http://www.tbray.org/>.
 
@@ -288,6 +288,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 886 2004-12-01 00:02:44Z dom $
+@(#) $Id: Genx.pm 891 2004-12-01 11:45:34Z dom $
 
 =cut
