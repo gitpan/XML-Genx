@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# @(#) $Id: Build.PL 924 2004-12-08 13:46:58Z dom $
+# @(#) $Id: Build.PL 464 2004-12-08 13:46:58Z dom $
 
 use strict;
 use Module::Build;

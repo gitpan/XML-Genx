@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 927 2004-12-14 22:53:20Z dom $
+# @(#) $Id: XML-Genx.t 466 2004-12-14 22:53:20Z dom $
 
 use strict;
 use warnings;

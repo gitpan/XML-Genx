@@ -1,4 +1,4 @@
-# @(#) $Id: typemap 870 2004-11-27 21:04:47Z dom $
+# @(#) $Id: typemap 410 2004-11-27 21:04:47Z dom $
 
 # T_PTROBJ_SPECIAL definition derived from the example in perlxs(1).
 

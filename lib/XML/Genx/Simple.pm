@@ -1,4 +1,4 @@
-# @(#) $Id: Simple.pm 923 2004-12-07 12:15:27Z dom $
+# @(#) $Id: Simple.pm 475 2005-02-18 09:17:56Z dom $
 
 package XML::Genx::Simple;
 
@@ -7,7 +7,7 @@ use warnings;
 
 use base 'XML::Genx';
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 sub Element {
     my $self = shift;
@@ -100,6 +100,23 @@ simpler in the common case.
 
 =over 4
 
+=item StartDocString ( )
+
+Starts a new document, and collects the result into a string.
+
+This method is offered as an extension to the genx API since it is
+significantly quicker.  Many thanks to A. Pagaltzis for suggesting it.
+
+=item GetDocString ( )
+
+Returns the string from the current writer object.  
+
+B<NB>: This is only guaranteed to be well-formed XML after you have
+called EndDocument().
+
+B<NB>: This will only produce sensible output if you've called
+StartDocString() previously.
+
 =item Element ( NAME, TEXT, [ATTRS] )
 
 Outputs E<lt>NAMEE<gt>TEXTE<lt>/NAMEE<gt> in one go.  NAME can be
@@ -168,6 +185,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Simple.pm 923 2004-12-07 12:15:27Z dom $
+@(#) $Id: Simple.pm 475 2005-02-18 09:17:56Z dom $
 
 =cut
