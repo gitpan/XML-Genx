@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 # Use XSLoader first if possible.
 eval {
@@ -70,8 +70,7 @@ needs to output something.  CALLBACK will be called with two
 arguments: the text to output and the name of the function that called
 it (one of I<write>, I<write_bounded>, or I<flush>).
 
-  my $coderef = sub { print $_[0] if $_[1] =~ /write/ };
-  $w->StartDocSender( $coderef );
+  $w->StartDocSender( sub { print $_[0] } );
 
 In the case of I<flush>, the first argument will always be an empty
 string.
@@ -292,6 +291,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 896 2004-12-02 21:09:21Z dom $
+@(#) $Id: Genx.pm 905 2004-12-04 20:06:25Z dom $
 
 =cut

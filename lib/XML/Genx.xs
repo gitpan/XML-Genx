@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 897 2004-12-02 22:05:00Z dom $ */
+/* @(#) $Id: Genx.xs 906 2004-12-04 20:09:41Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
@@ -127,6 +127,26 @@ static genxSender sender = {
     sender_flush
 };
 
+static void
+croak_on_genx_error( genxWriter w, genxStatus st )
+{
+    char *msg;
+    if ( st == GENX_SUCCESS ) {
+        msg = NULL;
+    } else if ( w ) {
+        msg = genxLastErrorMessage( w );
+    } else {
+        /* If we don't have a writer object handy, make one for this
+         * purpose.  This is slow, but unavoidable. */
+        w = genxNew( NULL, NULL, NULL );
+        msg = genxGetErrorMessage( w, st );
+        genxDispose( w );
+    }
+    if ( msg )
+        croak( msg );
+    return;
+}
+
 MODULE = XML::Genx	PACKAGE = XML::Genx	PREFIX=genx
 
 PROTOTYPES: DISABLE
@@ -171,7 +191,7 @@ genxStartDocFile( w, fh )
     if ( fh == NULL || fstat(fileno(fh), &st) == -1 )
       croak( "Bad filehandle" );
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 genxStatus
 genxStartDocSender( w, callback )
@@ -194,7 +214,7 @@ genxStartDocSender( w, callback )
     }
     RETVAL = genxStartDocSender( w, &sender );
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
   OUTPUT:
     RETVAL
 
@@ -202,7 +222,7 @@ genxStatus
 genxEndDocument( w )
     XML_Genx w
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 # Take a variable length list so that we can make the namespace
 # parameter optional.  Even when present, it will only be used if it's
@@ -226,7 +246,7 @@ genxStartElementLiteral( w, ... )
   CODE:
     RETVAL = genxStartElementLiteral( w, xmlns, name );
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
   OUTPUT:
     RETVAL
 
@@ -253,7 +273,7 @@ genxAddAttributeLiteral( w, ... )
   CODE:
     RETVAL = genxAddAttributeLiteral( w, xmlns, name, value );
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
   OUTPUT:
     RETVAL
 
@@ -261,7 +281,7 @@ genxStatus
 genxEndElement( w )
     XML_Genx w
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 char *
 genxLastErrorMessage( w )
@@ -277,21 +297,21 @@ genxAddText( w, start )
     XML_Genx w
     constUtf8 start
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 genxStatus
 genxAddCharacter( w, c )
     XML_Genx w
     int c
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 genxStatus
 genxComment( w, text )
     XML_Genx w
     constUtf8 text
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 genxStatus
 genxPI( w, target, text );
@@ -299,13 +319,13 @@ genxPI( w, target, text );
     constUtf8 target
     constUtf8 text
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 genxStatus
 genxUnsetDefaultNamespace( w )
     XML_Genx w
   POSTCALL:
-    if ( RETVAL != GENX_SUCCESS ) croak( genxLastErrorMessage( w ) );
+    croak_on_genx_error( w, RETVAL );
 
 char *
 genxGetVersion( class )
@@ -334,14 +354,11 @@ genxDeclareNamespace( w, uri, ... )
         croak( "usage: w->DeclareNamespace(uri,[defaultPrefix])" );
   PPCODE:
     ns = genxDeclareNamespace( w, uri, prefix, &st );
-    if ( ns && st == GENX_SUCCESS ) {
-        ST( 0 ) = sv_newmortal();
-        sv_setref_pv( ST(0), "XML::Genx::Namespace", (void*)ns );
-        SvREADONLY_on(SvRV(ST(0)));
-        XSRETURN( 1 );
-    } else {
-        XSRETURN_UNDEF;
-    }
+    croak_on_genx_error( w, st );
+    ST( 0 ) = sv_newmortal();
+    sv_setref_pv( ST(0), "XML::Genx::Namespace", (void*)ns );
+    SvREADONLY_on(SvRV(ST(0)));
+    XSRETURN( 1 );
 
 void
 genxDeclareElement( w, ... )
@@ -370,14 +387,11 @@ genxDeclareElement( w, ... )
         croak( "Usage: w->DeclareElement([ns],type)" );
     }
     el = genxDeclareElement( w, ns, type, &st );
-    if ( el && st == GENX_SUCCESS ) {
-        ST( 0 ) = sv_newmortal();
-        sv_setref_pv( ST(0), "XML::Genx::Element", (void*)el );
-        SvREADONLY_on(SvRV(ST(0)));
-        XSRETURN( 1 );
-    } else {
-        XSRETURN_UNDEF;
-    }
+    croak_on_genx_error( w, st );
+    ST( 0 ) = sv_newmortal();
+    sv_setref_pv( ST(0), "XML::Genx::Element", (void*)el );
+    SvREADONLY_on(SvRV(ST(0)));
+    XSRETURN( 1 );
 
 void
 genxDeclareAttribute( w, ... )
@@ -421,9 +435,6 @@ utf8
 genxGetNamespacePrefix( ns )
     XML_Genx_Namespace ns
 
-# XXX Need to die on failure...  This is harder than it seems because
-# we don't have the genxWriter object handy to call LastErrorMessage()
-# on...
 genxStatus
 genxAddNamespace(ns, ...);
     XML_Genx_Namespace ns
@@ -437,21 +448,25 @@ genxAddNamespace(ns, ...);
     else
         croak( "Usage: ns->AddNamespace([prefix])" );
     RETVAL = genxAddNamespace( ns, prefix );
+  POSTCALL:
+    croak_on_genx_error( NULL, RETVAL );
   OUTPUT:
     RETVAL
 
 MODULE = XML::Genx	PACKAGE = XML::Genx::Element	PREFIX=genx
 
-# XXX Need to die on failure...
 genxStatus
 genxStartElement( e )
     XML_Genx_Element e
+  POSTCALL:
+    croak_on_genx_error( NULL, RETVAL );
 
 MODULE = XML::Genx	PACKAGE = XML::Genx::Attribute	PREFIX=genx
 
-# XXX Need to die on failure...
 genxStatus
 genxAddAttribute( a, value )
     XML_Genx_Attribute a
     constUtf8 value
+  POSTCALL:
+      croak_on_genx_error( NULL, RETVAL );
 
