@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 # Use XSLoader first if possible.
 eval {
@@ -132,7 +132,7 @@ Return the version number of the Genx library in use.
 
 =item DeclareNamespace ( URI, PREFIX )
 
-Returns a new namespace object.  The resulting object has one method
+Returns a new namespace object.  The resulting object has two methods
 defined on it.
 
 =over 4
@@ -140,6 +140,10 @@ defined on it.
 =item GetNamespacePrefix ( )
 
 Returns the current prefix in scope for this namespace.
+
+=item AddNamespace ( [PREFIX] )
+
+Adds the namespace into the document, optionally with PREFIX.
 
 =back
 
@@ -288,6 +292,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 891 2004-12-01 11:45:34Z dom $
+@(#) $Id: Genx.pm 896 2004-12-02 21:09:21Z dom $
 
 =cut
