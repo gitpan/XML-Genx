@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 879 2004-11-30 13:51:07Z dom $
+# @(#) $Id: XML-Genx.t 886 2004-12-01 00:02:44Z dom $
 
 use strict;
 use warnings;
 
 use File::Temp qw( tempfile );
-use Test::More tests => 56;
+use Test::More tests => 66;
 
 use_ok('XML::Genx');
 
@@ -41,14 +41,20 @@ is(
 
 is(
     test_empty_namespace(),
-    '<foo></foo>',
+    '<foo bar="baz"></foo>',
     'test_empty_namespace() output',
 );
 
 is(
     test_undef_namespace(),
-    '<foo></foo>',
+    '<foo bar="baz"></foo>',
     'test_undef_namespace() output',
+);
+
+is(
+    test_no_namespace(),
+    '<foo bar="baz"></foo>',
+    'test_no_namespace() output',
 );
 
 test_bad_filehandle();
@@ -97,12 +103,16 @@ sub test_basics {
 }
 
 sub test_empty_namespace {
-    my $w = XML::Genx->new();
+    my $w  = XML::Genx->new();
     my $fh = tempfile();
     is( $w->StartDocFile( $fh ), 0, 'StartDocFile(fh)' );
     is(
         $w->StartElementLiteral( '', 'foo' ), 0,
         'StartElementLiteral("",foo)'
+    );
+    is(
+        $w->AddAttributeLiteral( '', bar => 'baz' ), 0,
+        'AddAttributeLiteral()'
     );
     is( $w->EndElement,  0, 'EndElement()' );
     is( $w->EndDocument, 0, 'EndDocument()' );
@@ -110,13 +120,28 @@ sub test_empty_namespace {
 }
 
 sub test_undef_namespace {
-    my $w = XML::Genx->new();
+    my $w  = XML::Genx->new();
     my $fh = tempfile();
     is( $w->StartDocFile( $fh ), 0, 'StartDocFile(fh)' );
     is(
         $w->StartElementLiteral( undef, 'foo' ), 0,
         'StartElementLiteral(undef,foo)'
     );
+    is(
+        $w->AddAttributeLiteral( undef, bar => 'baz' ), 0,
+        'AddAttributeLiteral()'
+    );
+    is( $w->EndElement,  0, 'EndElement()' );
+    is( $w->EndDocument, 0, 'EndDocument()' );
+    return fh_contents( $fh );
+}
+
+sub test_no_namespace {
+    my $w  = XML::Genx->new();
+    my $fh = tempfile();
+    is( $w->StartDocFile( $fh ), 0, 'StartDocFile(fh)' );
+    is( $w->StartElementLiteral( 'foo' ), 0, 'StartElementLiteral(foo)' );
+    is( $w->AddAttributeLiteral( bar => 'baz' ), 0, 'AddAttributeLiteral()' );
     is( $w->EndElement,  0, 'EndElement()' );
     is( $w->EndDocument, 0, 'EndDocument()' );
     return fh_contents( $fh );
@@ -152,6 +177,9 @@ sub test_declare_element {
     is( $w->LastErrorMessage, 'Success', 'DeclareElement()' );
     isa_ok( $el, 'XML::Genx::Element' );
     can_ok( $el, qw( StartElement ) );
+
+    my $el2 = $w->DeclareElement( 'wobble' );
+    isa_ok( $el2, 'XML::Genx::Element' );
 }
 
 sub test_declare_attribute {
@@ -161,6 +189,9 @@ sub test_declare_attribute {
     is( $w->LastErrorMessage, 'Success', 'DeclareAttribute()' );
     isa_ok( $at, 'XML::Genx::Attribute' );
     can_ok( $at, qw( AddAttribute ) );
+
+    my $at2 = $w->DeclareAttribute( 'weebl' );
+    isa_ok( $at2, 'XML::Genx::Attribute' );
 }
 
 sub test_declared_in_use {

@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 879 2004-11-30 13:51:07Z dom $ */
+/* @(#) $Id: Genx.xs 886 2004-12-01 00:02:44Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
@@ -198,21 +198,26 @@ genxEndDocument( w )
 # Instead, we have to take an SV and wing it ourselves.  That's a
 # *lot* more work...
 genxStatus
-genxStartElementLiteral( w, xmlns_sv, name )
+genxStartElementLiteral( w, ... )
     XML_Genx w
-    SV*        xmlns_sv
-    constUtf8  name
   PREINIT:
     constUtf8  xmlns;
+    constUtf8  name;
   INIT:
-    /* Undef means "no namespace". */
-    if ( xmlns_sv == &PL_sv_undef ) {
+    if ( items == 2 ) {
         xmlns = NULL;
+        name  = (constUtf8)SvPV_nolen(ST(1));
+    } else if ( items == 3 ) {
+        /* undef or empty string means "no namespace" */
+        if ( ST(1) == &PL_sv_undef )
+            xmlns = NULL;
+        else if ( SvCUR(ST(1)) == 0 )
+            xmlns = NULL;
+        else
+            xmlns = (constUtf8)SvPV_nolen(ST(1));
+        name  = (constUtf8)SvPV_nolen(ST(2));
     } else {
-        xmlns = (constUtf8)SvPV_nolen(xmlns_sv);
-       /* Empty string means "no namespace" too. */
-       if ( *xmlns == '\0' )
-           xmlns = NULL;
+        croak( "Usage: w->StartElementLiteral([xmlns],name)" );
     }
   CODE:
     RETVAL = genxStartElementLiteral( w, xmlns, name );
@@ -223,22 +228,29 @@ genxStartElementLiteral( w, xmlns_sv, name )
 
 # Same issue with xmlns here as in genxStartElementLiteral().
 genxStatus
-genxAddAttributeLiteral( w, xmlns_sv, name, value )
+genxAddAttributeLiteral( w, ... )
     XML_Genx w
-    SV*        xmlns_sv
-    constUtf8  name
-    constUtf8  value
   PREINIT:
     constUtf8  xmlns;
+    constUtf8  name;
+    constUtf8  value;
   INIT:
-    /* Undef means "no namespace". */
-    if ( xmlns_sv == &PL_sv_undef ) {
+    if ( items == 3 ) {
         xmlns = NULL;
+        name  = (constUtf8)SvPV_nolen(ST(1));
+        value = (constUtf8)SvPV_nolen(ST(2));
+    } else if ( items == 4 ) {
+        /* undef or empty string means "no namespace" */
+        if ( ST(1) == &PL_sv_undef )
+            xmlns = NULL;
+        else if ( SvCUR(ST(1)) == 0 )
+            xmlns = NULL;
+        else
+            xmlns = (constUtf8)SvPV_nolen(ST(1));
+        name  = (constUtf8)SvPV_nolen(ST(2));
+        value = (constUtf8)SvPV_nolen(ST(3));
     } else {
-        xmlns = (constUtf8)SvPV_nolen(xmlns_sv);
-       /* Empty string means "no namespace" too. */
-       if ( *xmlns == '\0' )
-           xmlns = NULL;
+        croak( "Usage: w->AddAttributeLiteral([xmlns],name,value)" );
     }
   CODE:
     RETVAL = genxAddAttributeLiteral( w, xmlns, name, value );
@@ -333,16 +345,32 @@ genxDeclareNamespace( w, uri, prefix_sv )
         XSRETURN_UNDEF;
     }
 
-# XXX Ensure ns is optional.
 void
-genxDeclareElement( w, ns, type )
+genxDeclareElement( w, ... )
     XML_Genx    w
-    XML_Genx_Namespace ns
-    constUtf8     type
   PREINIT:
-    genxStatus  st;
-    XML_Genx_Element el;
+    genxStatus         st;
+    XML_Genx_Element   el;
+    XML_Genx_Namespace ns;
+    constUtf8          type;
   PPCODE:
+    if ( items == 2 ) {
+        ns = (XML_Genx_Namespace) NULL;
+        type = (constUtf8)SvPV_nolen(ST(1));
+    } else if ( items == 3 ) {
+        /*  Bleargh, would be nice to be able to reuse typemap here */
+	if (ST(1) == &PL_sv_undef) {
+	    ns = (XML_Genx_Namespace) NULL;
+	} else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
+	    IV tmp = SvIV((SV*)SvRV(ST(1)));
+	    ns = INT2PTR(XML_Genx_Namespace, tmp);
+	} else {
+	    croak("ns is not undef or of type XML::Genx::Namespace");
+	}
+        type = (constUtf8)SvPV_nolen(ST(2));
+    } else {
+        croak( "Usage: w->DeclareElement([ns],type)" );
+    }
     el = genxDeclareElement( w, ns, type, &st );
     if ( el && st == GENX_SUCCESS ) {
         ST( 0 ) = sv_newmortal();
@@ -353,16 +381,32 @@ genxDeclareElement( w, ns, type )
         XSRETURN_UNDEF;
     }
 
-# XXX Ensure ns is optional.
 void
-genxDeclareAttribute( w, ns, name )
+genxDeclareAttribute( w, ... )
     XML_Genx    w
-    XML_Genx_Namespace ns
-    constUtf8     name
   PREINIT:
-    genxStatus    st;
+    genxStatus         st;
     XML_Genx_Attribute at;
+    XML_Genx_Namespace ns;
+    constUtf8          name;
   PPCODE:
+    if ( items == 2 ) {
+        ns = (XML_Genx_Namespace) NULL;
+        name = (constUtf8)SvPV_nolen(ST(1));
+    } else if ( items == 3 ) {
+        /*  Bleargh, would be nice to be able to reuse typemap here */
+	if (ST(1) == &PL_sv_undef) {
+	    ns = (XML_Genx_Namespace) NULL;
+	} else if (sv_derived_from(ST(1), "XML::Genx::Namespace")) {
+	    IV tmp = SvIV((SV*)SvRV(ST(1)));
+	    ns = INT2PTR(XML_Genx_Namespace, tmp);
+	} else {
+	    croak("ns is not undef or of type XML::Genx::Namespace");
+	}
+        name = (constUtf8)SvPV_nolen(ST(2));
+    } else {
+        croak( "Usage: w->DeclareAttribute([ns],name)" );
+    }
     at = genxDeclareAttribute( w, ns, name, &st );
     if ( at && st == GENX_SUCCESS ) {
         ST( 0 ) = sv_newmortal();

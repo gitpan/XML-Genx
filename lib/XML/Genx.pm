@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 # Use XSLoader first if possible.
 eval {
@@ -30,7 +30,7 @@ XML::Genx - Simple, correct XML writer
   eval {
       # <foo>bar</foo>
       $w->StartDocFile( *STDOUT );
-      $w->StartElementLiteral( undef, 'foo' );
+      $w->StartElementLiteral( 'foo' );
       $w->AddText( 'bar' );
       $w->EndElement;
       $w->EndDocument;
@@ -82,10 +82,15 @@ The string passed to CALLBACK will always be UTF-8.
 
 Finishes writing to the output stream.
 
-=item StartElementLiteral ( NAMESPACE, LOCALNAME )
+=item StartElementLiteral ( [NAMESPACE], LOCALNAME )
 
-Starts an element LOCALNAME, in NAMESPACE.  If NAMESPACE is undef, no
-namespace is used.
+Starts an element LOCALNAME, in NAMESPACE.  If NAMESPACE is not
+present or undef, or an empty string, no namespace is used.
+
+=item AddAttributeLiteral ( [NAMESPACE], LOCALNAME, VALUE )
+
+Adds an attribute LOCALNAME, with contents VALUE.  If NAMESPACE is not
+present or undef, or an empty string, no namespace is used.
 
 =item EndElement ( )
 
@@ -127,17 +132,57 @@ Return the version number of the Genx library in use.
 
 =item DeclareNamespace ( URI, PREFIX )
 
-Returns a new namespace object.
+Returns a new namespace object.  The resulting object has one method
+defined on it.
 
-=item DeclareElement ( NS, NAME )
+=over 4
+
+=item GetNamespacePrefix ( )
+
+Returns the current prefix in scope for this namespace.
+
+=back
+
+B<NB>: This object is only valid as long as the original L<XML::Genx>
+object that created it is still alive.
+
+=item DeclareElement ( [NS], NAME )
 
 Returns a new element object.  NS must an object returned by
-DeclareNamespace(), or undef to indicate no namespace.
+DeclareNamespace(), or undef to indicate no namespace (or not present
+at all).
 
-=item DeclareAttribute ( NS, NAME )
+The resulting object has one method available to call.
+
+=over 4
+
+=item StartElement ( )
+
+Outputs a start tag.
+
+=back
+
+B<NB>: This object is only valid as long as the original L<XML::Genx>
+object that created it is still alive.
+
+=item DeclareAttribute ( [NS], NAME )
 
 Returns a new attribute object.  NS must an object returned by
-DeclareNamespace(), or undef to indicate no namespace.
+DeclareNamespace(), or undef to indicate no namespace (or not present
+at all).
+
+There is one method defined for this object.
+
+=over 4
+
+=item AddAttribute ( VALUE )
+
+Adds an attribute to the current element with VALUE as the contents.
+
+=back
+
+B<NB>: This object is only valid as long as the original L<XML::Genx>
+object that created it is still alive.
 
 =back
 
@@ -184,12 +229,6 @@ sits on top of Genx.
 
 Make the constants available in Perl.  I don't think this is needed
 yet.
-
-=item *
-
-Make the interface more Perlish where possible.  I really like the way
-that the Ruby interface uses blocks, but I don't think it'd be as
-practical in Perl.
 
 =item *
 
@@ -249,6 +288,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 879 2004-11-30 13:51:07Z dom $
+@(#) $Id: Genx.pm 886 2004-12-01 00:02:44Z dom $
 
 =cut
