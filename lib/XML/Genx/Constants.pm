@@ -7,7 +7,7 @@ use XML::Genx;
 
 use base 'Exporter';
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 our @EXPORT_OK = qw(
   GENX_SUCCESS
   GENX_BAD_UTF8
@@ -107,7 +107,7 @@ L<http://www.tbray.org/ongoing/When/200x/2004/02/20/GenxStatus#declarations>.
 
 =head1 AUTHOR
 
-Dominic Mitchell, E<lt>cpan@happygiraffe.netE<gt>
+Dominic Mitchell, E<lt>cpan (at) happygiraffe.netE<gt>
 
 The genx library was created by Tim Bray L<http://www.tbray.org/>.
 
@@ -153,6 +153,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Constants.pm 590 2005-03-08 13:56:00Z dom $
+@(#) $Id: Constants.pm 726 2005-07-31 00:02:49Z dom $
 
 =cut

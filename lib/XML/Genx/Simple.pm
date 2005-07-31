@@ -1,4 +1,4 @@
-# @(#) $Id: Simple.pm 590 2005-03-08 13:56:00Z dom $
+# @(#) $Id: Simple.pm 726 2005-07-31 00:02:49Z dom $
 
 package XML::Genx::Simple;
 
@@ -7,7 +7,7 @@ use warnings;
 
 use base 'XML::Genx';
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 sub Element {
     my $self = shift;
@@ -139,7 +139,7 @@ L<XML::Genx>.
 
 =head1 AUTHOR
 
-Dominic Mitchell, E<lt>cpan@happygiraffe.netE<gt>
+Dominic Mitchell, E<lt>cpan (at) happygiraffe.netE<gt>
 
 The genx library was created by Tim Bray L<http://www.tbray.org/>.
 
@@ -185,6 +185,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Simple.pm 590 2005-03-08 13:56:00Z dom $
+@(#) $Id: Simple.pm 726 2005-07-31 00:02:49Z dom $
 
 =cut
