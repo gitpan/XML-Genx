@@ -1,4 +1,4 @@
-XML-Genx version 0.15
+XML-Genx version 0.16
 =====================
 
 Genx is a software library written in the C programming language. You
@@ -60,4 +60,4 @@ The genx library is:
 Copyright (c) 2004 by Tim Bray and Sun Microsystems.  For copying
 permission, see http://www.tbray.org/ongoing/genx/COPYING.
 
-# @(#) $Id: README 726 2005-07-31 00:02:49Z dom $
+# @(#) $Id: README 728 2005-07-31 00:08:43Z dom $

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# @(#) $Id: Build.PL 612 2005-03-16 22:11:04Z dom $
+# @(#) $Id: Build.PL 761 2005-08-31 19:57:26Z dom $
 
 use strict;
 use Module::Build;
@@ -24,7 +24,10 @@ Module::Build->new(
     module_name        => 'XML::Genx',
     license            => 'bsd',
     requires           => { perl => '5.6.1' },
-    recommends         => { 'XML::SAX::Base' => 0 },
+    recommends         => {
+        'XML::SAX::Base' => 0,
+        'Test::Pod'      => 0,
+    },
     build_requires     => \%build_requires,
     create_makefile_pl => 'passthrough',
     c_source           => 'src',
