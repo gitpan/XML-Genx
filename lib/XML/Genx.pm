@@ -3,7 +3,7 @@ package XML::Genx;
 use strict;
 use warnings;
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 # Use XSLoader first if possible.
 eval {
@@ -300,6 +300,6 @@ permission, see L<http://www.tbray.org/ongoing/genx/COPYING>.
 
 =head1 VERSION
 
-@(#) $Id: Genx.pm 782 2005-09-01 20:39:30Z dom $
+@(#) $Id: Genx.pm 885 2005-09-02 20:18:24Z dom $
 
 =cut

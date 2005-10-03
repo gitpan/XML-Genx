@@ -8,7 +8,7 @@ use XML::Genx::Simple;
 
 use base 'XML::SAX::Base';
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 sub new {
     my $class = shift;
@@ -228,6 +228,6 @@ L<XML::SAX::Base> interface.
 
 =head1 VERSION
 
-@(#) $Id: SAXWriter.pm 878 2005-09-02 19:37:19Z dom $
+@(#) $Id: SAXWriter.pm 885 2005-09-02 20:18:24Z dom $
 
 =cut
