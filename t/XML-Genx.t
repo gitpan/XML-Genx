@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 933 2005-10-03 22:15:54Z dom $
+# @(#) $Id: XML-Genx.t 990 2005-10-16 22:00:45Z dom $
 
 use strict;
 use warnings;
 
 use File::Temp qw( tempfile );
-use Test::More tests => 107;
+use Test::More tests => 115;
 
 BEGIN {
     use_ok( 'XML::Genx' );
@@ -101,6 +101,32 @@ is(
     test_astral(),
     "<monogram-for-earth>\x{1D300}</monogram-for-earth>",
     'test_astral() output',
+);
+
+is(
+    test_declared_namespace_in_literal(),
+    '<x:foo xmlns:x="urn:foo" x:attr=""></x:foo>',
+    'test_declared_namespace_in_literal() output',
+);
+
+# One of the examples from the XML canonicalization spec.
+is(
+    test_c14n_example_3_3(),
+    q{<doc>
+   <e1></e1>
+   <e2></e2>
+   <e3 id="elem3" name="elem3"></e3>
+   <e4 id="elem4" name="elem4"></e4>
+   <e5 xmlns="http://example.org" xmlns:a="http://www.w3.org" xmlns:b="http://www.ietf.org" attr="I'm" attr2="all" b:attr="sorted" a:attr="out"></e5>
+   <e6 xmlns:a="http://www.w3.org">
+      <e7 xmlns="http://www.ietf.org">
+         <e8 xmlns="">
+            <e9 xmlns:a="http://www.ietf.org" attr="default"></e9>
+         </e8>
+      </e7>
+   </e6>
+</doc>},
+    'test_c14n_example_3_3() output'
 );
 
 test_die_on_error();
@@ -307,6 +333,97 @@ sub test_astral {
     return fh_contents( $fh );
 }
 
+sub test_declared_namespace_in_literal {
+    my $w  = XML::Genx->new;
+    my $fh = tempfile();
+
+    is( $w->StartDocFile( $fh ), 0, 'StartDocFile()' );
+    my $ns = $w->DeclareNamespace( "urn:foo", "x" );
+    isa_ok( $ns, 'XML::Genx::Namespace' );
+    is( $w->StartElementLiteral( $ns, 'foo' ),
+        0, 'StartElementLiteral(ns,foo)' );
+    is( $w->AddAttributeLiteral( $ns, 'attr', '' ),
+        0, 'AddAttributeLiteral(x:attr)' );
+    is( $w->EndElement,  0, 'EndElement()' );
+    is( $w->EndDocument, 0, 'EndDocument()' );
+    return fh_contents( $fh );
+}
+
+# Check that start and end tags work according to spec.  This example is
+# horrible.  <http://www.w3.org/TR/xml-c14n#Example-SETags>
+sub test_c14n_example_3_3 {
+    my $fh = tempfile();
+    my $w  = XML::Genx->new;
+    my $indent = "   ";
+
+    # Attempt to replicate <http://www.w3.org/TR/xml-c14n#Example-SETags>.
+    $w->StartDocFile( $fh );
+    $w->StartElementLiteral( 'doc' );
+    $w->AddText( "\n" . $indent );
+
+    $w->StartElementLiteral( 'e1' );
+    $w->EndElement;
+    $w->AddText( "\n" . $indent );
+
+    $w->StartElementLiteral( 'e2' );
+    $w->EndElement;
+    $w->AddText( "\n" . $indent );
+
+    $w->StartElementLiteral( 'e3' );
+    $w->AddAttributeLiteral( name => 'elem3' );
+    $w->AddAttributeLiteral( id   => 'elem3' );
+    $w->EndElement;
+    $w->AddText( "\n" . $indent );
+
+    $w->StartElementLiteral( 'e4' );
+    $w->AddAttributeLiteral( name => 'elem4' );
+    $w->AddAttributeLiteral( id   => 'elem4' );
+    $w->EndElement;
+    $w->AddText( "\n" . $indent );
+
+    my $ns_a    = $w->DeclareNamespace( 'http://www.w3.org',   'a' );
+    my $ns_b    = $w->DeclareNamespace( 'http://www.ietf.org', 'b' );
+    my $ns_dflt = $w->DeclareNamespace( 'http://example.org',  '' );
+
+    $w->StartElementLiteral( $ns_dflt, 'e5' );
+    $w->AddAttributeLiteral( attr2 => 'all' );
+    $w->AddAttributeLiteral( $ns_a, attr => 'out' );
+    $w->AddAttributeLiteral( $ns_b, attr => 'sorted' );
+    $w->AddAttributeLiteral( attr => "I'm" );
+    $w->EndElement;
+    $w->AddText( "\n" . $indent );
+
+    $w->StartElementLiteral( 'e6' );
+    $ns_a->AddNamespace;
+    $w->AddText( "\n" . ($indent x 2) );
+
+    $w->StartElementLiteral( $ns_b, 'e7' );
+    $ns_b->AddNamespace( '' );
+    $w->AddText( "\n" . ($indent x 3) );
+
+    $w->StartElementLiteral( 'e8' );
+    $w->UnsetDefaultNamespace;
+    $w->AddText( "\n" . ($indent x 4) );
+
+    $w->StartElementLiteral( 'e9' );
+    $ns_b->AddNamespace( 'a' );
+    $w->AddAttributeLiteral( attr => 'default' );
+    $w->EndElement;    # e9
+    $w->AddText( "\n" . ($indent x 3) );
+
+    $w->EndElement;    # e8
+    $w->AddText( "\n" . ($indent x 2) );
+
+    $w->EndElement;    # e7
+    $w->AddText( "\n" . $indent );
+
+    $w->EndElement;    # e6
+    $w->AddText( "\n" );
+    $w->EndElement;    # doc
+    $w->EndDocument;
+    return fh_contents( $fh );
+}
+
 sub test_die_on_error {
     my $w = XML::Genx->new;
     cmp_ok( $w->LastErrorCode, '==', 0, 'LastErrorCode() after new()' );
@@ -414,7 +531,9 @@ sub test_scrubtext {
 
 sub fh_contents {
     my $fh = shift;
-    binmode( $fh, ':utf8' );
+    # In perl 5.8+, read proper characters.  I /think/ that perl 5.6
+    # tries to autodetect this.
+    binmode( $fh, ':utf8' ) if $] >= 5.008;
     seek $fh, 0, 0 or die "seek: $!\n";
     local $/;
     return <$fh>;
