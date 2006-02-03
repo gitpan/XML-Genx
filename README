@@ -1,5 +1,5 @@
-XML-Genx version 0.19
-=====================
+XML-Genx
+========
 
 Genx is a software library written in the C programming language. You
 can use it to generate XML output, suitable for saving into a file or
@@ -60,4 +60,4 @@ The genx library is:
 Copyright (c) 2004 by Tim Bray and Sun Microsystems.  For copying
 permission, see http://www.tbray.org/ongoing/genx/COPYING.
 
-# @(#) $Id: README 984 2005-10-16 08:24:14Z dom $
+# @(#) $Id: README 1117 2006-02-03 21:16:01Z dom $
