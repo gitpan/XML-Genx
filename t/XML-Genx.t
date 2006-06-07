@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 990 2005-10-16 22:00:45Z dom $
+# @(#) $Id: XML-Genx.t 1179 2006-06-07 06:52:57Z dom $
 
 use strict;
 use warnings;
@@ -527,6 +527,18 @@ sub test_scrubtext {
     my $w = XML::Genx->new();
     is( $w->ScrubText( "abc" ),     "abc", 'ScrubText() all good' );
     is( $w->ScrubText( "abc\x01" ), "abc", 'ScrubText() skips non-xml chars' );
+}
+
+sub test_perl_strings {
+    my $w  = XML::Genx->new;
+    my $fh = tempfile();
+    is( $w->StartDocFile( $fh ), 0, 'StartDocFile()' );
+    is( $w->StartElementLiteral('foo'), 0, 'StartElementLiteral()');
+    is( $w->AddText( do { use bytes; "\xA0" } ), 0, 'AddText(\xA0) as bytes' );
+    is( $w->EndElement, 0, 'EndElement()');
+    is( $w->EndDocument, 0, 'EndDocument()');
+    is( fh_contents($fh), "<foo>\xA0</foo>", 'test_perl_strings');
+    return;
 }
 
 sub fh_contents {
