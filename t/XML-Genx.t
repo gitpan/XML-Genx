@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# @(#) $Id: XML-Genx.t 1179 2006-06-07 06:52:57Z dom $
+# @(#) $Id: XML-Genx.t 1266 2006-10-08 16:26:55Z dom $
 
 use strict;
 use warnings;
@@ -435,7 +435,7 @@ sub test_die_on_error {
     # exception objects where I shouldn't have.  Now that I've switched
     # to plain strings, I expect them to report where they have croaked.
     my $thisfile = __FILE__;
-    like( $@, qr/ at $thisfile/, 'Exception reports location.' );
+    like( $@, qr/ at \Q$thisfile/, 'Exception reports location.' );
 
     # This is the new way to determine more exactly what happened.
     cmp_ok( $w->LastErrorCode, '==', GENX_SEQUENCE_ERROR,

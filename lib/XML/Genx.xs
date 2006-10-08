@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-/* @(#) $Id: Genx.xs 1111 2006-02-03 20:45:03Z dom $ */
+/* @(#) $Id: Genx.xs 1267 2006-10-08 17:07:38Z dom $ */
 
 #include "EXTERN.h"
 #include "perl.h"
@@ -331,7 +331,7 @@ genxStartDocFile( w, fh )
     XML_Genx w
     FILE *fh
   PREINIT:
-    struct stat st;
+    Stat_t st;
     HV *self;
     SV *fhsv;
   INIT:
